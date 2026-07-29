@@ -1,12 +1,47 @@
-# BorderSync-AI
-BorderSync-AI is an autonomous multi-agent platform designed to eliminate global port delays by automating cross-border customs clearance and freight compliance.
+IndieGen
+IndieGen is an automated, AI-powered Game Design Document (GDD) and narrative lore synthesizer designed for indie developers and hackathons. It scans your game repository—parsing both code logic (variables, functions, structure) and narrative assets (dialogue JSONs, scripts)—to instantly generate professional documentation, World Lore Bibles, and Character Sentiment & Alignment Matrices.
 
-Global logistics operations lose billions annually due to manual paperwork processing, language barriers, and incorrect Harmonized System (HS) tariff classification. BorderSync-AI solves this bottleneck through a specialized three-agent architecture:
+Key Features
+Universal Repository Scanner: Recursively crawls project directories supporting code files (.cs, .gd, .py) and narrative assets (.json, .txt).
 
-Document Parsing Agent: Uses multimodal vision models to extract structured invoice data instantly from multilingual, scanned shipping manifests (Chinese, Spanish, German, etc.).
+Automated GDD Generation: Extracts structural variables and game mechanics to auto-draft clean, comprehensive markdown documentation.
 
-Tariff Classification Agent: Dynamically matches extracted cargo items to precise 6-to-10-digit HS codes, providing real-time duty estimates and reasoning.
+World Lore Synthesizer: Parses dialogue trees and narrative files to map out cohesive world-building overviews and backstories.
 
-Compliance Audit Agent: Performs automated risk checks, flagging hazmat discrepancies, missing permits, and regulatory compliance gaps.
+Character Sentiment & Alignment Matrix: Evaluates extracted character dialogue snippets to map out emotional vectors, subtext, and psychological profiles module-by-module.
 
-By turning hours of complex document auditing into a seamless, seconds-long automated workflow, BorderSync-AI generates ready-to-submit customs clearance reports, reduces costly fines, and keeps global supply chains moving efficiently.
+Streamlit Frontend: A developer-friendly interface providing real-time generation and visualization of your game's documentation.
+
+Tech Stack
+Frontend/UI: Streamlit
+
+AI Intelligence: Google GenAI SDK (gemini-3.5-flash)
+
+Core Language: Python
+
+Parsing: Custom Regex & JSON traversal engines
+
+Getting Started
+1. Installation
+Clone the repository and install the required dependencies:
+
+Bash
+git clone https://github.com/your-username/indiegen.git
+cd indiegen
+pip install -r requirements.txt
+2. Set Up Environment Variables
+Configure your Google Gemini API key:
+
+Bash
+export GEMINI_API_KEY="your_api_key_here"
+3. Run the App
+Launch the Streamlit interface:
+
+Bash
+streamlit run app.py
+How to Use
+Point the Repository Path input in the sidebar toward your game project folder (e.g., a directory containing your .cs scripts or dialogue .json files).
+
+Click Generate GDD & Lore.
+
+Review your auto-generated Game Design Document, World Lore Bible, and Character Sentiment Matrix instantly.
