@@ -1,121 +1,125 @@
-import base64
 import os
-import json
 import streamlit as st
-from agents.parser import (
-    extract_text_from_image,
-    extract_text_from_pdf,
-    # parse_trade_document_with_crew,
-    parse_document
-)
+import agents.parser as parser
+import agents.gdd_generator as gdd
+import agents.lore as lore
+import agents.character_emotion as sentiment
 
-def display_document_preview(uploaded_file):
-    if uploaded_file is None:
-        return
+st.set_page_config(page_title="IndieGen", page_icon="🎮", layout="wide")
 
-    file_type = uploaded_file.type
-    bytes_data = uploaded_file.getvalue()
-    base64_data = base64.b64encode(bytes_data).decode("utf-8")
+st.title("IndieGen 🎮")
+st.subheader("Automated Game Design Document & Lore Synthesizer")
 
-    # 1. Handle PDF preview
-    if file_type == "application/pdf":
-        pdf_display = f"""
-            <iframe 
-                src="data:application/pdf;base64,{base64_data}" 
-                width="100%" 
-                height="650px" 
-                type="application/pdf"
-                style="border: 1px solid #e6e6e6; border-radius: 8px;">
-            </iframe>
-        """
-        st.markdown(pdf_display, unsafe_allow_html=True)
+# Initialize session state for persistence across reruns
+if "discovered_files" not in st.session_state:
+    st.session_state.discovered_files = None
+if "parse_triggered" not in st.session_state:
+    st.session_state.parse_triggered = False
+if "parsed_data" not in st.session_state:
+    st.session_state.parsed_data = {}
+if "ai_gdd" not in st.session_state:
+    st.session_state.ai_gdd = ""
+if "ai_lore" not in st.session_state:
+    st.session_state.ai_lore = ""
+if "ai_sentiment" not in st.session_state:
+    st.session_state.ai_sentiment = ""
 
-    # 2. Handle Images (PNG / JPG / JPEG)
-    elif file_type in ["image/png", "image/jpeg", "image/jpg"]:
-        st.image(
-            uploaded_file, caption=uploaded_file.name, use_container_width=True
-        )
-    else:
-        st.warning(f"Preview not available for file type: {file_type}")
-
-
-def main():
-    st.set_page_config(page_title="BorderSync-AI", layout="centered")
-
-    st.title("BorderSync-AI")
-    st.write("Simple demo UI for BorderSync-AI")
-
-    st.sidebar.header("Options")
-    mode = st.sidebar.selectbox("Mode", ["Upload File", "Enter Text"])
-
-    raw_text = ""
-
-    # --- Mode 1: File Upload ---
-    if mode == "Upload File":
-        uploaded_file = st.file_uploader(
-            "Upload Document", type=["pdf", "png", "jpg", "jpeg"]
-        )
-
-        if uploaded_file:
-            st.subheader("Document Preview")
-            display_document_preview(uploaded_file)
-
-            # Save temporary file to extract text
-            temp_path = f"temp_{uploaded_file.name}"
-            with open(temp_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
-
-            # Extract raw string based on file type
-            try:
-                if uploaded_file.type == "application/pdf":
-                    raw_text = extract_text_from_pdf(temp_path)
-                else:
-                    raw_text = extract_text_from_image(temp_path)
-            except Exception as e:
-                st.error(f"Text extraction failed: {e}")
-            finally:
-                # Clean up temporary file
-                if os.path.exists(temp_path):
-                    os.remove(temp_path)
-
-    # --- Mode 2: Raw Text Input ---
-    else:
-        user_text = st.text_area("Enter raw invoice text here:", height=200)
-        if user_text.strip():
-            raw_text = user_text.strip()
-
-    # --- Run Parser Agent ---
-    if st.button("Run Compliance Audit"):
-        with st.spinner("Extracting text and parsing via Gemini..."):
-                    try:
-                        # 1. Extract text from uploaded PDF bytes
-                        raw_text = extract_text_from_pdf(uploaded_file)
-                        
-                        # 2. Call Gemini
-                        json_string_response = parse_document(raw_text)
-                        
-                        # 3. Parse JSON to ensure validity
-                        parsed_data = json.loads(json_string_response)
-                        
-                        # Store in session state to persist across reruns
-                        st.session_state.parsed_data = parsed_data
-                        st.session_state.json_output_str = json.dumps(parsed_data, indent=4, ensure_ascii=False)
-                        
-                    except Exception as e:
-                        st.error(f"An error occurred during parsing: {e}")
+with st.sidebar:
+    st.header("Configuration")
+    entered_path = st.text_input("Repository Path", placeholder="path/to/game/source")
     
-    # Display JSON output if it exists in session state
-    if "parsed_data" in st.session_state:
-        st.subheader("Extracted JSON Output:")
-        st.json(st.session_state.parsed_data)
-        
-        # 4. Streamlit Download Button
-        st.download_button(
-            label="Download Extracted JSON",
-            data=st.session_state.json_output_str,
-            file_name="extracted_output.json",
-            mime="application/json"
-        )
+    # Robust path sanitization: strip quotes, whitespace, and normalize OS path separators
+    repo_path = os.path.normpath(entered_path.strip().strip('"').strip("'"))
+    
+    parse_btn = st.button("Generate GDD & Lore", type="primary")
 
-if  __name__ == "__main__":
-    main()
+# Handle button click and execution
+if parse_btn and repo_path:
+    with st.spinner("Analyzing repository, synthesizing narrative, and evaluating sentiments..."):
+        discovered_files = parser.scan_repository(repo_path)
+        st.session_state.discovered_files = discovered_files
+        
+        if discovered_files:
+            parsed_data = parser.extract_game_mechanics(discovered_files)
+            st.session_state.parsed_data = parsed_data
+            
+            # Run all three AI agents concurrently/sequentially
+            st.session_state.ai_gdd = gdd.generate_gdd_narrative(parsed_data)
+            st.session_state.ai_lore = lore.generate_lore_bible(parsed_data)
+            st.session_state.ai_sentiment = sentiment.analyze_character_sentiments(parsed_data)
+        else:
+            st.session_state.parsed_data = {}
+            st.session_state.ai_gdd = "No files available to generate GDD."
+            st.session_state.ai_lore = "No narrative files found."
+            st.session_state.ai_sentiment = "No sentiment data available."
+            
+        st.session_state.parse_triggered = True
+
+# Static layout columns
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("Source Code & Dialogue Files")
+    if not st.session_state.parse_triggered:
+        st.info("Files detected will appear here once parsed.")
+    else:
+        files = st.session_state.discovered_files
+        if files:
+            st.success(f"Found {len(files)} files!")
+            for f in files[:15]:
+                st.text(f)
+        else:
+            st.warning("No .cs, .gd, or .json files found in that path.")
+
+with col2:
+    st.subheader("Generated GDD, Lore & Character Matrix")
+    if not st.session_state.parse_triggered:
+        st.info("Your reverse-engineered documentation will render here.")
+    else:
+        # 1. AI Synthesized GDD
+        ai_gdd_text = st.session_state.get("ai_gdd", "")
+        if ai_gdd_text:
+            with st.expander("🤖 AI Synthesized GDD", expanded=True):
+                st.markdown(ai_gdd_text)
+            st.divider()
+            
+        # 2. AI Lore Bible
+        ai_lore_text = st.session_state.get("ai_lore", "")
+        if ai_lore_text:
+            with st.expander("📖 World Lore Bible", expanded=False):
+                st.markdown(ai_lore_text)
+            st.divider()
+
+        # 3. Character Sentiment & Alignment Matrix
+        ai_sentiment_text = st.session_state.get("ai_sentiment", "")
+        if ai_sentiment_text:
+            with st.expander("🎭 Character Sentiment & Alignment Matrix", expanded=False):
+                st.markdown(ai_sentiment_text)
+            st.divider()
+            
+        # 4. Technical Variable Breakdown
+        parsed_data = st.session_state.get("parsed_data", {})
+        if parsed_data:
+            st.markdown("### 🔍 Technical Variable Breakdown")
+            for filename, data in parsed_data.items():
+                with st.expander(f"📄 {filename}"):
+                    if "error" in data:
+                        st.error(f"Error reading file: {data['error']}")
+                    else:
+                        st.write(f"**Line Count:** {data['line_count']}")
+                        
+                        # Show snippets if narrative strings exist
+                        snippets = data.get("narrative_snippets", [])
+                        if snippets:
+                            st.markdown("**Extracted Narrative Snippets:**")
+                            st.write(snippets[:5])
+                            
+                        # Show code variables if they exist
+                        vars_dict = data.get("variables", {})
+                        if vars_dict:
+                            st.markdown("**Extracted Variables:**")
+                            st.json(vars_dict)
+                        elif not snippets:
+                            st.caption("No matching variables or text snippets found.")
+        else:
+            st.warning("No valid files available to parse.")
