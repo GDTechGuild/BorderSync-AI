@@ -177,15 +177,14 @@ if "repo_name" not in st.session_state:
 if "selected_view" not in st.session_state:
     st.session_state.selected_view = "Overview"
 
-# Main Grid Layout: Left Content vs Right Sidebar (Found Files & Downloads)
+# Main Grid Layout
 left_main, right_sidebar = st.columns([2.8, 1.2], gap="small")
 
 with left_main:
-    # 🎮 HERO BANNER PANEL
     st.markdown(f"<h1 style='font-size: 3.5rem; margin-bottom: 0;'>⚡ {st.session_state.repo_name}</h1>", unsafe_allow_html=True)
     st.caption("Automated Source-to-GDD Pipeline & Architecture Hub")
 
-    # Native Streamlit container replacing raw unclosed html div tag
+    # Native Streamlit container to replace html div tag
     with st.container():
         hero_col1, hero_col2 = st.columns([3, 1], gap="medium")
         
@@ -198,7 +197,7 @@ with left_main:
             st.caption("RUN EXECUTION PIPELINE")
             parse_btn = st.button("LAUNCH GAME PARSER", key="main_launch_btn", use_container_width=True)
 
-    # Parser Trigger Logic
+    # Parser 
     if parse_btn and repo_path:
         if not os.path.exists(repo_path):
             st.error("Invalid path. Folder does not exist.")
@@ -238,9 +237,8 @@ with left_main:
             "Technical Breakdown": "Technical statistics, extracted variables, and code file line metrics parsed from your source repository."
         }
 
-        # Dynamic navigation header when active in a specific module
         if st.session_state.selected_view != "Overview":
-            st.markdown("### 🧭 Quick Module Navigation")
+            st.markdown("### Module Navigation")
             st.markdown(
                 """
                 <style>
@@ -266,7 +264,6 @@ with left_main:
                         st.rerun()
             st.markdown("<br>", unsafe_allow_html=True)
 
-        # 🎛️ GLASS PREVIEW WINDOWS GRID
         if st.session_state.selected_view == "Overview":
             st.caption("Click the inspect button above any module to open full focus mode, or hover to preview contents.")
             
@@ -282,12 +279,11 @@ with left_main:
                 preview_snippet = "<br>".join(clean_lines[:8]) if clean_lines else "Click to inspect module details..."
                 
                 with col:
-                    # 1. Native Streamlit Button above card
                     if st.button(f"Inspect {title.split()[0]} →", key=f"hover_inspect_btn_{i}", use_container_width=True):
                         st.session_state.selected_view = title
                         st.rerun()
 
-                    # 2. Glass Hover Card underneath (expands on hover)
+                    # hover preview
                     st.markdown(f"""
                         <div class="hover-card">
                             <h4 style="margin: 0 0 6px 0; font-size: 1.05rem; font-weight: 700; color: #f8fafc;">{title}</h4>
@@ -299,7 +295,7 @@ with left_main:
 
         else:
             active_title = st.session_state.selected_view
-            st.markdown(f"## 📂 Active Module: {active_title}")
+            st.markdown(f"## {active_title}")
             st.divider()
             
             if active_title != "Technical Breakdown":
@@ -327,12 +323,12 @@ with left_main:
             st.markdown("<br><hr>", unsafe_allow_html=True)
             col_left, col_center, col_right = st.columns([2, 3, 2])
             with col_center:
-                if st.button("🏠 Return to Main Overview Dashboard", use_container_width=True):
+                if st.button("Return to Main Overview Dashboard", use_container_width=True):
                     st.session_state.selected_view = "Overview"
                     st.rerun()
 
 with right_sidebar:
-    st.markdown("### 👥 Found Files")
+    st.markdown("### 📄 Found Files")
     st.markdown("")
     st.markdown("")
     if not st.session_state.parse_triggered:
@@ -349,7 +345,7 @@ with right_sidebar:
         else:
             st.warning("No valid code or narrative files found.")
 
-        # 💾 EXPORT / DOWNLOAD SECTION (Placed under Found Files)
+        # export
         st.divider()
         st.markdown("### 💾 Export Options")
         
@@ -375,7 +371,7 @@ with right_sidebar:
             use_container_width=True
         )
 
-        # 📊 PARSED REPOSITORY METRICS SECTION
+        # Metrics
         st.divider()
         st.markdown("### 📊 Parsed Repository Metrics")
         parsed_data = st.session_state.get("parsed_data", {})
@@ -384,7 +380,6 @@ with right_sidebar:
         st.markdown(f"* **Total lines parsed:** {repo_metrics['total_lines']}")
         st.markdown(f"* **Extracted Narrative Snippets:** {repo_metrics['snippet_count']}")
         
-        # Code vs Narrative metric line with interactive tooltip help icon
         st.markdown(
             f"* **Code vs Narrative ratio:** {repo_metrics['ratio_str']}",
             help="Measures the balance between raw source code logic (lines) and written story content (dialogue, lore strings, JSON text). A higher code ratio indicates a mechanics-focused game, while a higher narrative ratio indicates a story-heavy game."
